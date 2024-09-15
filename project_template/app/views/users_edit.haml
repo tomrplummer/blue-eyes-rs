@@ -1,0 +1,30 @@
+%form{action: "/user/profile/#{@user[:id]}", method: :post}
+  %input{type: :hidden, value: :put, name: "_method"}
+  %div{style: "width: 20rem"}
+    %div.stack-md
+      %a{href: "/logout"}= "Logout"
+      - if flash[:error]
+        %div.bg-red-100.border.border-red-400.text-red-700.px-4.py-3.rounded.relative.text-sm
+          = flash[:error]
+      - if flash[:notice]
+        %div.bg-green-100.border.border-green-400.text-green-700.px-4.py-3.rounded.relative.text-sm
+          = flash[:notice]
+      %div.stack-xs
+        %label
+          %div
+            %span= "Full Name"
+        %input.bottom-border{autofocus: true, value: @user[:full_name], name: :full_name, placeholder: "Full Name"}
+
+      %div.stack-xs
+        %label
+          %div
+            %span= "Email"
+        %input.bottom-border{value: @user[:username], name: :username, placeholder: :email}
+      %div.stack-xs
+        %label
+          %div
+            %span= "Password"
+        %input.bottom-border{type: :password, name: :password, placeholder: :password}
+      %div.stack-lg
+        %div.flex.flex-row.justify-center
+          %button Submit

@@ -1,0 +1,23 @@
+.stack-xs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stack-sm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.stack-md {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.stack-lg {
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+}

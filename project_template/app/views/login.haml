@@ -1,0 +1,24 @@
+%form{action: "/login", method: :post}
+  %div.border.bg-white.shadow-lg.stack-md.rounded-md.p-16.rounded-md.m-auto.max-w-96
+    %span.font-semibold.text-gray-600= "Login"
+    %div.stack-xs
+      %label
+        %div
+          %span= "Username"
+      %input.bottom-border{autofocus: :true, value: @user.username, name: :username}
+    %div.stack-xs
+      %label
+        %div
+          %span= "Password"
+      %input.bottom-border{value: @user.password_hash, type: :password, name: :password}
+    - if flash[:error]
+      %div.bg-red-100.border.border-red-400.text-red-700.px-4.py-3.rounded.relative.text-sm
+        %span.block.sm:inline= flash[:error]
+    - if @error
+      %div.bg-red-100.border.border-red-400.text-red-700.px-4.py-3.rounded.relative.text-sm
+        %span.block.sm:inline= @error
+    %div.stack-md.mt-12
+      %div.flex.flex-row.justify-center
+        %button.primary Submit
+      %div.flex.flex-row.justify-center.text-blue-400
+        %a{style: "font-size: .85rem;", href: "/signup"} Sign up

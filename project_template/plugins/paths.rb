@@ -1,0 +1,3 @@
+module Paths
+
+end

@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.responsive-container {
+  @apply mx-auto px-4;
+  /* Center and padding for small devices */
+  @apply max-w-screen-sm;
+  /* Max width for small devices */
+
+  /* Medium devices (tablets, less than 768px) */
+  @apply md:max-w-screen-md;
+
+  /* Large devices (desktops, 1024px and up) */
+  @apply lg:max-w-screen-lg;
+
+  /* Extra large devices (large desktops, 1280px and up) */
+  @apply xl:max-w-screen-xl;
+
+  /* 2XL devices (4k and large screens, 1536px and up) */
+  @apply 2xl:max-w-screen-2xl;
+}
+
+input,
+input[type="password"] {
+  @apply rounded-md w-full border outline-none ring-0 ring-transparent focus:border-blue-400;
+}
+
+label {
+  @apply text-xs text-gray-600 uppercase font-semibold;
+}
+
+button.primary {
+  @apply py-2 w-full bg-blue-400 border border-blue-500 text-white rounded-md tracking-wider;
+}
