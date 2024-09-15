@@ -131,7 +131,7 @@ fn handle_generate(entity: &GenerateSubcommand) {
 }
 
 fn handle_new(project_name: String, db: String) -> Result<(), String> {
-    let project = Project::new(project_name, db);
+    let mut project = Project::new(project_name, db);
     if let Err(e) = project.generate() {
         println!("Failed to generate project {}", e);
         return Err(e.to_string());

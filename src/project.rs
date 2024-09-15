@@ -20,14 +20,15 @@ struct Templates;
 pub struct Project {
     name: String,
     db: String,
+    connection_string: Option<String>,
 }
 
 impl Project {
     pub fn new(name: String, db: String) -> Self {
-        Project { name, db }
+        Project { name, db, connection_string: None }
     }
 
-    pub fn generate(&self) -> Result<(), String> {
+    pub fn generate(&mut self) -> Result<(), String> {
         let current_dir = current_dir().unwrap();
         let template_dir = current_dir.join(self.name.clone());
 
@@ -37,9 +38,10 @@ impl Project {
             return Err(e.to_string());
         }
 
-        if let Err(e) = self.create_env_file() {
-            return Err(e.to_string());
-        }
+        self.connection_string = match self.create_env_file() {
+            Ok(connection_string) => Some(connection_string),
+            Err(e) => return Err(e.to_string())
+        };
 
         if let Err(e) = self.create_bundle_config() {
             return Err(e.to_string());
@@ -61,10 +63,33 @@ impl Project {
             return Err(e.to_string());
         }
 
+        if let Err(e) = self.run_migrate() {
+            return Err(e.to_string());
+        }
+
+        Ok(())
+    }
+
+    fn run_migrate(&self) -> Result<(), String> {
+        println!("Running migrations for {}", &self.connection_string.clone().unwrap());
+        let cmd = Command::new("bundle")
+            .arg("exec")
+            .arg("sequel")
+            .arg("-m")
+            .arg(Dir::Migrations(None).path())
+            .arg(self.connection_string.clone().unwrap())
+            .output()
+            .map_err(|e| e.to_string())?;
+
+        if !cmd.status.success() {
+            return Err(String::from_utf8(cmd.stderr).unwrap());
+        }
+
         Ok(())
     }
 
     fn chmod_x(&self, path: String) -> Result<(), String> {
+
         let output = Command::new("chmod").arg("+x").arg(path).output().map_err(|e| e.to_string())?;
         if !output.status.success() {
             return Err(String::from_utf8(output.stderr).unwrap());
@@ -100,7 +125,7 @@ impl Project {
         Ok(())
     }
 
-    fn create_env_file(&self) -> Result<(), String> {
+    fn create_env_file(&self) -> Result<String, String> {
         let mut env = EnvFile::new(self.name.clone(), self.db.clone());
 
         let mut context = Context::new();
@@ -108,7 +133,7 @@ impl Project {
         context.insert("secret", &env.secret);
 
         match env.write_template(&context) {
-            Ok(_) => Ok(()),
+            Ok(_) => Ok(env.connection_string),
             Err(e) =>  Err(e.to_string()),
         }
     }
