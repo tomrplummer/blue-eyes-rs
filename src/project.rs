@@ -3,9 +3,11 @@ use std::env::{self, current_dir};
 use std::fs::{create_dir_all, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use tera::Context;
 use crate::utils::tmpl::envfile::EnvFile;
 use crate::dirs::Dir;
+use crate::bundle::Bundler;
 use crate::utils::tmpl::bundle_config::BundleConfig;
 use crate::utils::tmpl::config_ru::ConfigRu;
 use crate::utils::tmpl::gemfile::Gemfile;
@@ -51,7 +53,32 @@ impl Project {
             return Err(e.to_string());
         }
 
+        if let Err(e) = self.run_bundle(self.db.clone()) {
+            return Err(e.to_string());
+        }
+
+        if let Err(e) = self.chmod_x(Dir::Bin(Some("dev")).path()) {
+            return Err(e.to_string());
+        }
+
         Ok(())
+    }
+
+    fn chmod_x(&self, path: String) -> Result<(), String> {
+        let output = Command::new("chmod").arg("+x").arg(path).output().map_err(|e| e.to_string())?;
+        if !output.status.success() {
+            return Err(String::from_utf8(output.stderr).unwrap());
+        }
+
+        Ok(())
+    }
+
+    fn run_bundle(&self, db: String) -> Result<(), String> {
+        let bundler = Bundler::new();
+        match bundler.install(db) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e.to_string()),
+        }
     }
 
     fn create_config_ru(&self) -> Result<(), String> {

@@ -7,6 +7,7 @@ mod dirs;
 mod utils;
 pub mod project;
 mod writable_template;
+mod bundle;
 
 // use utils::tmpl;
 // use utils::paths::Dir;
@@ -132,6 +133,7 @@ fn handle_generate(entity: &GenerateSubcommand) {
 fn handle_new(project_name: String, db: String) -> Result<(), String> {
     let project = Project::new(project_name, db);
     if let Err(e) = project.generate() {
+        println!("Failed to generate project {}", e);
         return Err(e.to_string());
     }
 
