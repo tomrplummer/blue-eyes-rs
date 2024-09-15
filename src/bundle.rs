@@ -1,8 +1,10 @@
-use std::process::Command;
-use std::vec;
+use std::process::{Command, Stdio};
+use std::{thread, vec};
+use std::io::{BufRead, BufReader};
+use thread::spawn;
 
 pub struct Bundler<'a> {
-    pub  gems: Vec<&'a str>
+    pub gems: Vec<&'a str>
 }
 
 impl<'a> Bundler<'a> {
@@ -27,28 +29,50 @@ impl<'a> Bundler<'a> {
     }
 
     pub fn install(&self, db: String) -> Result<(), String> {
-        let db_driver = if db == "postgres" {
-            "pg"
-        } else {
-            "sqlite3"
-        };
-
-        let mut gem_list = self.gems.clone();
-        gem_list.push(db_driver);
-
-        for gem in gem_list {
-            println!("Installing {}", gem);
-
-            let output = Command::new("bundle")
-                .arg("add")
-                .arg(gem)
-                .output()
-                .map_err(|e| e.to_string())?;
-            if !output.status.success() {
-                return Err(String::from_utf8(output.stderr).unwrap());
-            }
+        let bundle = &mut Command::new("bundle".to_string());
+        bundle.arg("add");
+        for gem in &self.gems {
+            bundle.arg(&gem);
         }
 
-        Ok(())
+        if db == "postgres" {
+            bundle.arg("pg");
+        } else {
+            bundle.arg("sqlite3");
+        }
+        bundle.stdout(Stdio::piped()).stderr(Stdio::piped());
+        let mut child = bundle.spawn().map_err(|err| err.to_string())?;
+
+        if let Some(stdout) = child.stdout.take() {
+            let reader = BufReader::new(stdout);
+            spawn(move || {
+                for line in reader.lines() {
+                    match line {
+                        Ok(line) => println!("{}", line),
+                        Err(e)  => println!("Error: {}", e)
+                    }
+                }
+            });
+        };
+
+        if let Some(stderr) = child.stderr.take() {
+            let reader = BufReader::new(stderr);
+            spawn(move || {
+                for line in reader.lines() {
+                    match line {
+                        Ok(line) => eprintln!("{}", line),
+                        Err(e)  => println!("Error: {}", e)
+                    }
+                }
+            });
+        };
+
+        let status = child.wait().map_err(|err| err.to_string())?;
+
+        if !status.success() {
+            Err(status.code().unwrap_or(-1).to_string())
+        } else {
+            Ok(())
+        }
     }
 }
