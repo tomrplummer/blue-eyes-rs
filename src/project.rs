@@ -7,6 +7,7 @@ use tera::Context;
 use crate::utils::tmpl::envfile::EnvFile;
 use crate::dirs::Dir;
 use crate::utils::tmpl::bundle_config::BundleConfig;
+use crate::utils::tmpl::config_ru::ConfigRu;
 use crate::utils::tmpl::gemfile::Gemfile;
 use crate::writable_template::WritableTemplate;
 
@@ -46,7 +47,19 @@ impl Project {
             return Err(e.to_string());
         }
 
+        if let Err(e) = self.create_config_ru() {
+            return Err(e.to_string());
+        }
+
         Ok(())
+    }
+
+    fn create_config_ru(&self) -> Result<(), String> {
+        let mut config_ru = ConfigRu::new();
+        match config_ru.write_template(&Context::new()) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e.to_string()),
+        }
     }
 
     fn cd_app_dir(&self) -> Result<(), String> {
