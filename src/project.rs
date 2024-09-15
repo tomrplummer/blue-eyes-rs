@@ -75,7 +75,7 @@ impl Project {
 
     fn run_bundle(&self, db: String) -> Result<(), String> {
         let bundler = Bundler::new();
-        match bundler.install(db) {
+        match bundler.install(&db) {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),
         }

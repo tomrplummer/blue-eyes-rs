@@ -27,21 +27,34 @@ impl<'a> Bundler<'a> {
 
         Bundler { gems }
     }
+    pub fn install(&self, db: &str) -> Result<(), String> {
+        let cmd = self.build_command(db);
 
-    pub fn install(&self, db: String) -> Result<(), String> {
-        let bundle = &mut Command::new("bundle".to_string());
-        bundle.arg("add");
+        match self.run_install(cmd) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e.to_string())
+        }
+    }
+
+    fn build_command(&self, db: &str) -> Command {
+        let mut cmd = Command::new("bundle".to_string());
+        cmd.arg("add");
         for gem in &self.gems {
-            bundle.arg(&gem);
+            cmd.arg(&gem);
         }
 
         if db == "postgres" {
-            bundle.arg("pg");
+            cmd.arg("pg");
         } else {
-            bundle.arg("sqlite3");
+            cmd.arg("sqlite3");
         }
-        bundle.stdout(Stdio::piped()).stderr(Stdio::piped());
-        let mut child = bundle.spawn().map_err(|err| err.to_string())?;
+        cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+
+        cmd
+    }
+
+    pub fn run_install(&self, mut cmd: Command) -> Result<(), String> {
+        let mut child = cmd.spawn().map_err(|err| err.to_string())?;
 
         if let Some(stdout) = child.stdout.take() {
             let reader = BufReader::new(stdout);
