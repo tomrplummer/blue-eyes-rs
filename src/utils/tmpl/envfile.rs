@@ -23,7 +23,7 @@ impl EnvFile {
         let pg_connection_string = "postgres://".to_string() + project_name.as_str();
         let sqlite_connection_string = "sqlite://".to_string() + project_name.as_str() + ".db";
         let connection_string = match db {
-            _ if db.to_string().trim() == "postgres".to_string() => pg_connection_string,
+            _ if db.to_string().trim() == "postgres" => pg_connection_string,
             _ => sqlite_connection_string,
         };
 

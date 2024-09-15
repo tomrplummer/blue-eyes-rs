@@ -25,13 +25,13 @@ pub trait WritableTemplate {
             println!("Template not found");
             return Err("Template not found".to_string());
         }
-        match tera.render(filename, &context) {
+        match tera.render(filename, context) {
             Ok(rendered) => Ok(rendered),
             Err(e) => Err(e.to_string()),
         }
     }
     fn write_template(&mut self, context: &Context) -> Result<bool, String> {
-        let file_contents = match self.render(&self.template_path(), &context) {
+        let file_contents = match self.render(&self.template_path(), context) {
             Ok(file_contents) => file_contents,
             Err(_) => return Err("Unable to generate template".to_string())
         };
@@ -43,7 +43,7 @@ pub trait WritableTemplate {
     }
 
     fn write_to_file(&self, content: &str) -> Result<(), String> {
-        let mut file = match File::create(&self.path()) {
+        let mut file = match File::create(self.path()) {
             Ok(f) => f,
             Err(e) => return Err(e.to_string()),
         };

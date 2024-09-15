@@ -1,20 +1,20 @@
+use crate::bundle::Bundler;
+use crate::dirs::Dir;
+use crate::utils::fget::download_file;
+use crate::utils::tmpl::bundle_config::BundleConfig;
+use crate::utils::tmpl::config_ru::ConfigRu;
+use crate::utils::tmpl::envfile::EnvFile;
+use crate::utils::tmpl::gemfile::Gemfile;
+use crate::utils::tmpl::tw::Tailwind;
+use crate::writable_template::WritableTemplate;
+use colored::Colorize;
 use rust_embed::RustEmbed;
 use std::env::{self, current_dir};
 use std::fs::{create_dir_all, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use colored::Colorize;
 use tera::Context;
-use crate::utils::tmpl::envfile::EnvFile;
-use crate::dirs::Dir;
-use crate::bundle::Bundler;
-use crate::utils::fget::download_file;
-use crate::utils::tmpl::bundle_config::BundleConfig;
-use crate::utils::tmpl::config_ru::ConfigRu;
-use crate::utils::tmpl::gemfile::Gemfile;
-use crate::utils::tmpl::tw::Tailwind;
-use crate::writable_template::WritableTemplate;
 
 #[derive(RustEmbed)]
 #[folder = "project_template"]
@@ -28,16 +28,22 @@ pub struct Project {
 
 impl Project {
     pub fn new(name: String, db: String) -> Self {
-        Project { name, db, connection_string: None}
+        Project {
+            name,
+            db,
+            connection_string: None,
+        }
     }
 
     pub fn generate(&mut self) -> Result<(), String> {
         let current_dir = current_dir().unwrap();
         let template_dir = current_dir.join(self.name.clone());
 
-        _ = self.copy_project_template(template_dir);
-
         // copy all files/folders from project_template
+        if let Err(e) = self.copy_project_template(template_dir) {
+            return Err(e.to_string());
+        }
+
         if let Err(e) = self.cd_app_dir() {
             return Err(e.to_string());
         }
@@ -46,9 +52,7 @@ impl Project {
         // TODO: generate secret
         self.connection_string = match self.create_env_file() {
             Ok(connection_string) => Some(connection_string),
-            Err(e) => {
-                return Err(e.to_string())
-            }
+            Err(e) => return Err(e.to_string()),
         };
 
         // add bundle config to control bundler settings
@@ -94,13 +98,16 @@ impl Project {
 
         println!("{}", "Run app".blue());
         println!("-------------");
-        println!("{}", format!("{}", format_args!("cd ./{}", &self.name)).blue());
+        println!(
+            "{}",
+            format!("{}", format_args!("cd ./{}", &self.name)).blue()
+        );
         println!("{}", "bin/dev".blue());
 
         Ok(())
     }
 
-    fn download_tailwind(&self) -> Result<(), String>{
+    fn download_tailwind(&self) -> Result<(), String> {
         println!("{}", "Downloading tailwind".blue());
         let url = "https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-macos-arm64";
         if let Err(e) = download_file(url, &Dir::Bin(Some("tailwindcss")).path()) {
@@ -108,14 +115,17 @@ impl Project {
         }
 
         if let Err(e) = self.chmod_x(Dir::Bin(Some("tailwindcss")).path()) {
-            return Err(e.to_string())
+            return Err(e.to_string());
         }
 
         Ok(())
     }
 
-    fn init_tailwind(&self) -> Result<(), String>{
-        let cmd = Command::new(Dir::Bin(Some("tailwindcss")).path()).arg("init").output().map_err(|e| e.to_string())?;
+    fn init_tailwind(&self) -> Result<(), String> {
+        let cmd = Command::new(Dir::Bin(Some("tailwindcss")).path())
+            .arg("init")
+            .output()
+            .map_err(|e| e.to_string())?;
 
         if !cmd.status.success() {
             return Err("Failed to init tailwind.".to_string());
@@ -126,11 +136,16 @@ impl Project {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),
         }
-
     }
 
     fn run_migrate(&self) -> Result<(), String> {
-        let msg: String = format!("{}", format_args!("Running migrations for {}", self.connection_string.clone().unwrap()));
+        let msg: String = format!(
+            "{}",
+            format_args!(
+                "Running migrations for {}",
+                self.connection_string.clone().unwrap()
+            )
+        );
         println!("{}", msg.green());
 
         let cmd = Command::new("bundle")
@@ -153,7 +168,11 @@ impl Project {
         println!("{}", "Setting execute for ".green());
         println!("{}", path.green());
 
-        let output = Command::new("chmod").arg("+x").arg(path).output().map_err(|e| e.to_string())?;
+        let output = Command::new("chmod")
+            .arg("+x")
+            .arg(path)
+            .output()
+            .map_err(|e| e.to_string())?;
         if !output.status.success() {
             return Err(String::from_utf8(output.stderr).unwrap());
         }
@@ -205,7 +224,7 @@ impl Project {
 
         match env.write_template(&context) {
             Ok(_) => Ok(env.connection_string),
-            Err(e) =>  Err(e.to_string()),
+            Err(e) => Err(e.to_string()),
         }
     }
 
@@ -216,7 +235,7 @@ impl Project {
 
         match bundle_config.write_template(&Context::new()) {
             Ok(_) => Ok(()),
-            Err(e) =>  Err(e.to_string()),
+            Err(e) => Err(e.to_string()),
         }
     }
 
@@ -228,7 +247,7 @@ impl Project {
 
         match gemfile.write_template(&context) {
             Ok(_) => Ok(()),
-            Err(e) =>  Err(e.to_string()),
+            Err(e) => Err(e.to_string()),
         }
     }
 

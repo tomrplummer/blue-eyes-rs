@@ -38,10 +38,10 @@ impl<'a> Bundler<'a> {
     }
 
     fn build_command(&self, db: &str) -> Command {
-        let mut cmd = Command::new("bundle".to_string());
+        let mut cmd = Command::new("bundle");
         cmd.arg("add");
         for gem in &self.gems {
-            cmd.arg(&gem);
+            cmd.arg(gem);
         }
 
         if db == "postgres" {
