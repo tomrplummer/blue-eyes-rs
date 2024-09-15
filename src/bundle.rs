@@ -2,6 +2,7 @@ use std::process::{Command, Stdio};
 use std::{thread, vec};
 use std::io::{BufRead, BufReader};
 use thread::spawn;
+use colored::Colorize;
 
 pub struct Bundler<'a> {
     pub gems: Vec<&'a str>
@@ -61,8 +62,8 @@ impl<'a> Bundler<'a> {
             spawn(move || {
                 for line in reader.lines() {
                     match line {
-                        Ok(line) => println!("{}", line),
-                        Err(e)  => println!("Error: {}", e)
+                        Ok(line) => println!("{}", line.blue()),
+                        Err(e)  => println!("Error: {}", e.to_string().red())
                     }
                 }
             });

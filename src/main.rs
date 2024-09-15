@@ -2,6 +2,8 @@ use core::str;
 // use std::io::Write;
 
 use clap::{Args, Parser, Subcommand};
+use colored::Colorize;
+use env_logger::Env;
 
 mod dirs;
 mod utils;
@@ -133,7 +135,7 @@ fn handle_generate(entity: &GenerateSubcommand) {
 fn handle_new(project_name: String, db: String) -> Result<(), String> {
     let mut project = Project::new(project_name, db);
     if let Err(e) = project.generate() {
-        println!("Failed to generate project {}", e);
+        println!("Failed to generate project {}", &e.red());
         return Err(e.to_string());
     }
 
@@ -141,6 +143,8 @@ fn handle_new(project_name: String, db: String) -> Result<(), String> {
 }
 
 fn main() {
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+
     let cli = Cli::parse();
 
     match &cli.command {
