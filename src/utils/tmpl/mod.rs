@@ -1,2 +1,3 @@
 pub mod envfile;
-mod bundle_config;
+pub mod bundle_config;
+pub mod gemfile;

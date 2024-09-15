@@ -6,6 +6,8 @@ use std::path::{Path, PathBuf};
 use tera::Context;
 use crate::utils::tmpl::envfile::EnvFile;
 use crate::dirs::Dir;
+use crate::utils::tmpl::bundle_config::BundleConfig;
+use crate::utils::tmpl::gemfile::Gemfile;
 use crate::writable_template::WritableTemplate;
 
 #[derive(RustEmbed)]
@@ -36,6 +38,14 @@ impl Project {
             return Err(e.to_string());
         }
 
+        if let Err(e) = self.create_bundle_config() {
+            return Err(e.to_string());
+        }
+
+        if let Err(e) = self.create_gemfile() {
+            return Err(e.to_string());
+        }
+
         Ok(())
     }
 
@@ -58,6 +68,25 @@ impl Project {
         context.insert("secret", &env.secret);
 
         match env.write_template(&context) {
+            Ok(_) => Ok(()),
+            Err(e) =>  Err(e.to_string()),
+        }
+    }
+
+    fn create_bundle_config(&self) -> Result<(), String> {
+        let mut bundle_config = BundleConfig::new();
+
+        match bundle_config.write_template(&Context::new()) {
+            Ok(_) => Ok(()),
+            Err(e) =>  Err(e.to_string()),
+        }
+    }
+
+    fn create_gemfile(&self) -> Result<(), String> {
+        let mut gemfile = Gemfile::new();
+        let context = gemfile.get_context();
+
+        match gemfile.write_template(&context) {
             Ok(_) => Ok(()),
             Err(e) =>  Err(e.to_string()),
         }

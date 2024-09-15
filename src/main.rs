@@ -41,6 +41,7 @@ enum Commands {
         #[arg(long, default_value = "sqlite")]
         db: String,
     },
+    Test,
     Migrate,
     Generate {
         #[command(subcommand)]
@@ -146,5 +147,12 @@ fn main() {
         }
         Commands::Migrate => println!("Running all new migrations scripts"),
         Commands::Generate { entity } => handle_generate(entity),
+        Commands::Test => {
+            let gem_file = crate::utils::tmpl::gemfile::Gemfile::new();
+            match gem_file.get_ruby_version() {
+                Ok(ruby_version) => println!("{}", ruby_version),
+                Err(e) => println!("{}", e),
+            }
+        }
     }
 }
