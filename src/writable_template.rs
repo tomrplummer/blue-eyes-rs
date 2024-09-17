@@ -1,4 +1,4 @@
-use std::fs::{File, OpenOptions};
+use std::fs::OpenOptions;
 use std::io::Write;
 use std::str::from_utf8;
 use rust_embed::RustEmbed;

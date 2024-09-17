@@ -136,7 +136,7 @@ impl Resource {
 
         let mut path_config = PathsConfig::new();
 
-        match path_config.write_template(&path_config_context) {
+        match path_config.write_template(path_config_context) {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),
         }
