@@ -1,0 +1,45 @@
+class {{ class }}
+    # index
+    get "/{{ belongs_to_path}}/:{{ belongs_to_id }}_id/{{ alias_or_name }}" do
+      @{{ variable_plural }} = {{ model }}.where({{ belongs_to_id }}_id: params[:{{ belongs_to_id }}_id]).all
+      haml :{{ haml }}_index
+    end
+
+    # new
+    get "/{{ belongs_to_path }}/:{{ belongs_to_id }}_id/{{ alias_or_name }}/new" do
+      @{{ variable }} = {{ model }}.new
+      haml :{{ haml }}_new
+    end
+
+    # show
+    get "/{{ alias_or_name }}/:id" do |id|
+      @{{ variable }} = {{ model }}.find(id:)
+      haml :{{ haml }}_show
+    end
+
+    # edit
+    get "/{{ alias_or_name }}/:id/edit" do |id|
+      @{{ variable }} = {{ model }}.find(id:)
+      haml :{{ haml }}_edit
+    end
+
+    # create
+    post "/{{ belongs_to_path }}/:{{ belongs_to_id }}_id/{{ alias_or_name }}" do |{{ belongs_to_id }}_id|
+      {{ variable }} = {{ model }}.create params.merge({{ belongs_to_id}}_id:)
+      redirect "/{{ belongs_to_path }}/#{{"{"}}{{belongs_to_id}}_id}}{{"}"}}/{{ alias_or_name }}/#{{"{"}}{{ variable }}[:id]{{"}"}}"
+    end
+
+    # update
+    put "/{{ belongs_to_path }}/:{{ belongs_to_id }}_id/{{ alias_or_name }}/:id" do |{{ belongs_to_id }}_id, id|
+      {{ variable }} = {{ model }}.find(id:)
+      {{ variable }} = {{ model }}.permitted(params)
+      redirect "/{{ belongs_to_path }}/#{{"{"}}{{belongs_to_id}}_id}}{{"}"}}/{{ alias_or_name }}/#{{"{"}}{{ variable }}[:id]{{"}"}}"
+    end
+
+    #  destroy
+    delete "/{{ belongs_to_path }}/:{{ belongs_to_id }}_id/{{ alias_or_name }}/:id" do |{{ belongs_to_id }}_id, id|
+      {{ variable }} = {{ model }}.find(id:)
+      {{ variable }}.destroy
+      redirect "/{{ belongs_to_path }}/#{{"{"}}{{belongs_to_id}}_id}}{{"}"}}/{{ alias_or_name }}"
+    end
+end

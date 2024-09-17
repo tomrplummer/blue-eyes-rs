@@ -22,6 +22,7 @@ pub enum NameVariant {
     Alias,
     BelongsToModel,
     BelongsToPath,
+    BelongsToId,
 }
 
 #[derive(Debug, Clone)]
@@ -87,12 +88,25 @@ impl Resource {
             context.insert("alias_or_name", &self.variant(NameVariant::Alias, self.name.clone()));
         }
 
+        if let Some(belongs_to) = &self.belongs_to {
+            context.insert("belongs_to_model", &self.variant(NameVariant::BelongsToModel, belongs_to.clone()));
+            context.insert("belongs_to_id", &self.variant(NameVariant::BelongsToId, belongs_to.clone()));
+            context.insert("belongs_to_path", &self.variant(NameVariant::BelongsToPath, belongs_to.clone()));
+        } else {
+            context.insert("belongs_to_model", &self.variant(NameVariant::BelongsToModel, self.name.clone()));
+            context.insert("belongs_to_path", &self.variant(NameVariant::BelongsToPath, self.name.clone()));
+            context.insert("belongs_to_id", &self.variant(NameVariant::BelongsToId, self.name.clone()));
+        }
+
         context
     }
 
     fn generate_controller(&self) -> Result<(), String> {
-        let name = &self.variant(NameVariant::Path, self.name.clone());
-        let mut controller = Controller::new(name.clone());
+        let filename = self.variant(NameVariant::Path, self.name.clone());
+        let has_belongs_to = self.belongs_to.is_some();
+
+        let mut controller = Controller::new(filename.clone(), has_belongs_to);
+
         match controller.write_template(&self.get_context()) {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),
@@ -106,27 +120,10 @@ impl Resource {
             NameVariant::Variable => name.to_snake_case().to_singular(),
             NameVariant::Haml => name.to_snake_case().to_plural(),
             NameVariant::Path => name.to_snake_case().to_plural(),
-            NameVariant::Alias => {
-                if let Some(name) = &self.alias {
-                    name.to_snake_case().to_plural()
-                } else {
-                    self.name.to_snake_case().to_plural()
-                }
-            },
-            NameVariant::BelongsToModel => {
-                if let Some(belongs_to) = &self.belongs_to {
-                    belongs_to.to_pascal_case().to_singular()
-                } else {
-                    self.name.to_snake_case().to_plural()
-                }
-            },
-            NameVariant::BelongsToPath => {
-                if let Some(belongs_to) = &self.belongs_to {
-                    belongs_to.to_snake_case().to_plural()
-                } else {
-                    self.name.to_snake_case().to_plural()
-                }
-            },
+            NameVariant::Alias => name.to_snake_case().to_plural(),
+            NameVariant::BelongsToModel => name.to_pascal_case().to_singular(),
+            NameVariant::BelongsToPath => name.to_snake_case().to_plural(),
+            NameVariant::BelongsToId => name.to_snake_case().to_singular(),
             NameVariant::VariablePlural => name.to_snake_case().to_plural(),
         }
     }

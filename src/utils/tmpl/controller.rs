@@ -17,10 +17,16 @@ impl WritableTemplate for Controller {
 }
 
 impl Controller {
-    pub fn new(path: String) -> Self {
+    pub fn new(filename: String, belongs_to: bool) -> Self {
+        let template_path = if belongs_to {
+            "controller_belongs_to.template".to_string()
+        } else {
+            "controller.template".to_string()
+        };
+
         Controller {
-            path: Dir::Controllers(Some(&format!("{}{}", path, "_controller.rb"))).path(),
-            template_path: "controller.template".to_string(),
+            path: Dir::Controllers(Some(&format!("{}{}", filename, "_controller.rb"))).path(),
+            template_path,
         }
     }
 }
