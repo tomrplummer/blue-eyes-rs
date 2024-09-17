@@ -1,8 +1,6 @@
 # Ignore bundler config
-/.bundle
 /vendor/bundle
 # For older Bundler versions
-.bundle/
 /vendor/ruby/
 
 # Ignore default SQLite database files

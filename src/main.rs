@@ -17,12 +17,17 @@ use crate::utils::tmpl::gemfile::Gemfile;
 
 
 fn handle_generate(entity: &GenerateSubcommand) {
-    let _resource = match entity {
+    let resource = match entity {
         GenerateSubcommand::Api(args) => Resource::new(args, CommandType::Api),
         GenerateSubcommand::Controller(args) => Resource::new(args, CommandType::Controller),
         GenerateSubcommand::Model(args) => Resource::new(args, CommandType::Model),
         GenerateSubcommand::Scaffold(args) => Resource::new(args, CommandType::Scaffold),
     };
+
+    match resource.generate_template() {
+        Ok(()) => println!("no error"),
+        Err(e) => println!("{}", e),
+    }
 }
 
 fn handle_new(project_name: String, db: String) -> Result<(), String> {

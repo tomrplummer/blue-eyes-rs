@@ -1,0 +1,45 @@
+class {{ class }}
+    # index
+    get "/{{ alias_or_name }}" do
+      @{{ variable_plural }} = {{ model }}.all
+      haml :{{ haml }}_index
+    end
+
+    # new
+    get "/{{ alias_or_name }}/new" do
+      @{{ variable }} = {{ model }}.new
+      haml :{{ haml }}_new
+    end
+
+    # show
+    get "/{{ alias_or_name }}/:id" do |id|
+      @{{ variable }} = {{ model }}.find(id:)
+      haml :{{ haml }}_show
+    end
+
+    # edit
+    get "/{{ alias_or_name }}/:id/edit" do |id|
+      @{{ variable }} = {{ model }}.find(id:)
+      haml :{{ haml }}_edit
+    end
+
+    # create
+    post "/{{ alias_or_name }}" do
+      {{ variable }} = {{ model }}.create params
+      redirect "/{{ alias_or_name }}/#{{"{"}}{{ variable }}[:id]{{"}"}}"
+    end
+
+    # update
+    put "/{{ alias_or_name }}/:id" do |id|
+      {{ variable }} = {{ model }}.find(id:)
+      {{ variable }} = {{ model }}.permitted(params)
+      redirect "/{{ alias_or_name }}/#{{"{"}}{{ variable }}[:id]{{"}"}}"
+    end
+
+    #  destroy
+    delete "/{{ alias_or_name }}/:id" do |id|
+      {{ variable }} = {{ model }}.find(id:)
+      {{ variable }}.destroy
+      redirect "/{{ alias_or_name }}"
+    end
+end

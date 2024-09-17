@@ -1,7 +1,7 @@
 use clap::{Args, Parser, Subcommand};
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum CommandType {
     New,
     Api,
