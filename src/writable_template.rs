@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::str::from_utf8;
 use rust_embed::RustEmbed;
@@ -43,10 +43,13 @@ pub trait WritableTemplate {
     }
 
     fn write_to_file(&self, content: &str) -> Result<(), String> {
-        let mut file = match File::create(self.path()) {
-            Ok(f) => f,
-            Err(e) => return Err(e.to_string()),
-        };
+        let mut file = match OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open(self.path()) {
+                Ok(f) => f,
+                Err(e) => return Err(e.to_string()),
+            };
 
         match file.write_all(content.as_bytes()) {
             Ok(_) => Ok(()),

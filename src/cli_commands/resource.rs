@@ -2,6 +2,7 @@ use crate::cli_commands::cli::{CommandType, SharedArgs};
 use inflector::Inflector;
 use tera::Context;
 use crate::utils::tmpl::controller::Controller;
+use crate::utils::tmpl::paths_config::PathsConfig;
 use crate::writable_template::WritableTemplate;
 
 #[allow(dead_code)]
@@ -68,7 +69,10 @@ impl Resource {
     pub fn generate_template(&self) -> Result<(), String> {
         match &self.for_command {
             // CommandType::Api => println!("Api"),
-            CommandType::Controller => self.generate_controller(),
+            CommandType::Controller => {
+                self.generate_controller()?;
+                self.generate_path_config()
+            },
             // CommandType::Model => println!("Model"),
             // CommandType::Scaffold => println!("Scaffold"),
             _ => Err("Not implemented".to_string()),
@@ -99,6 +103,43 @@ impl Resource {
         }
 
         context
+    }
+
+    fn get_path_config_context(&self, name: String, alias: Option<String>, belongs_to: Option<String>) -> Context {
+        let mut context = Context::new();
+        context.insert("name", &self.variant(NameVariant::Path, name));
+
+        if let Some(alias) = alias {
+            context.insert("alias", &self.variant(NameVariant::Path, alias));
+            context.insert("has_alias", &true);
+        } else {
+            context.insert("alias", "");
+            context.insert("has_alias", &false);
+        }
+        if let Some(belongs_to) = belongs_to {
+            context.insert("belongs_to", &self.variant(NameVariant::Path, belongs_to));
+            context.insert("has_belongs_to", &true);
+        } else {
+            context.insert("belongs_to", "");
+            context.insert("has_belongs_to", &false);
+        }
+
+        context
+    }
+
+    fn generate_path_config(&self) -> Result<(), String> {
+        let path_config_context = &self.get_path_config_context(
+            self.name.clone(),
+            self.alias.clone(),
+            self.belongs_to.clone()
+        );
+
+        let mut path_config = PathsConfig::new();
+
+        match path_config.write_template(&path_config_context) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e.to_string()),
+        }
     }
 
     fn generate_controller(&self) -> Result<(), String> {

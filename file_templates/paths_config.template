@@ -1,0 +1,5 @@
+[[resources]]
+name="{{ name }}"
+as="{{ alias }}"
+belongs_to="{{ belongs_to }}"
+
