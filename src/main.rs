@@ -1,20 +1,18 @@
-use clap::{Parser};
+use clap::Parser;
 use colored::Colorize;
 use env_logger::Env;
 
+mod bundle;
+mod cli_commands;
 mod dirs;
 mod utils;
 mod writable_template;
-mod bundle;
-mod cli_commands;
 
-use cli_commands::project::{Project};
-use cli_commands::cli::GenerateSubcommand;
 use crate::cli_commands::cli::{Cli, CommandType, Commands};
 use crate::cli_commands::resource::Resource;
 use crate::utils::tmpl::gemfile::Gemfile;
-
-
+use cli_commands::cli::GenerateSubcommand;
+use cli_commands::project::Project;
 
 fn handle_generate(entity: &GenerateSubcommand) {
     let resource = match entity {
