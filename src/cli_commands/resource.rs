@@ -8,6 +8,7 @@ use inflector::Inflector;
 use tera::Context;
 use toml::Value;
 use crate::dirs::Dir;
+use crate::utils::tmpl::model::Model;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -71,17 +72,32 @@ impl Resource {
     }
 
     pub fn generate_template(&self) -> Result<(), String> {
+        println!("Generating template... {:?}", &self.for_command);
         match &self.for_command {
             // CommandType::Api => println!("Api"),
             CommandType::Controller => {
                 self.generate_controller()?;
                 _ = self.generate_path_config();
-                _ = self.load_paths_config();
                 Ok(())
             }
-            // CommandType::Model => println!("Model"),
+            CommandType::Model => {
+                self.generate_model()?; 
+                Ok(())
+            }
             // CommandType::Scaffold => println!("Scaffold"),
             _ => Err("Not implemented".to_string()),
+        }
+    }
+
+    fn generate_model(&self) -> Result<(), String> {
+        let filename = self.variant(NameVariant::Path, self.name.clone());
+        let context = self.get_context()?;
+
+        let mut model = Model::new(filename);
+
+        match model.write_template(&context) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e.to_string()),
         }
     }
 
