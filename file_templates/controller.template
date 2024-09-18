@@ -1,4 +1,6 @@
-class {{ class }}
+require 'haml'
+
+class {{ class }} < ApplicationController
     # index
     get "/{{ alias_or_name }}" do
       @{{ variable_plural }} = {{ model }}.all
@@ -32,7 +34,7 @@ class {{ class }}
     # update
     put "/{{ alias_or_name }}/:id" do |id|
       {{ variable }} = {{ model }}.find(id:)
-      {{ variable }} = {{ model }}.permitted(params)
+      {{ variable }}.update {{ model }}.permitted(params)
       redirect "/{{ alias_or_name }}/#{{"{"}}{{ variable }}[:id]{{"}"}}"
     end
 

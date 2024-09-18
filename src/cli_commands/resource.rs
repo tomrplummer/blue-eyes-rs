@@ -1,9 +1,13 @@
+use std::collections::HashMap;
+use std::fs;
 use crate::cli_commands::cli::{CommandType, SharedArgs};
-use inflector::Inflector;
-use tera::Context;
 use crate::utils::tmpl::controller::Controller;
 use crate::utils::tmpl::paths_config::PathsConfig;
 use crate::writable_template::WritableTemplate;
+use inflector::Inflector;
+use tera::Context;
+use toml::Value;
+use crate::dirs::Dir;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -71,41 +75,89 @@ impl Resource {
             // CommandType::Api => println!("Api"),
             CommandType::Controller => {
                 self.generate_controller()?;
-                self.generate_path_config()
-            },
+                _ = self.generate_path_config();
+                _ = self.load_paths_config();
+                Ok(())
+            }
             // CommandType::Model => println!("Model"),
             // CommandType::Scaffold => println!("Scaffold"),
             _ => Err("Not implemented".to_string()),
         }
     }
 
-    fn get_context(&self) -> Context {
+    fn get_context(&self) -> Result<Context, String> {
+        let alias_lookup = match self.load_paths_config() {
+            Ok(alias_lookup) => alias_lookup,
+            Err(e) => Err(e.to_string())?,
+        };
+
         let mut context = Context::new();
         context.insert("haml", &self.variant(NameVariant::Haml, self.name.clone()));
-        context.insert("variable", &self.variant(NameVariant::Variable, self.name.clone()));
-        context.insert("variable_plural", &self.variant(NameVariant::VariablePlural, self.name.clone()));
-        context.insert("class", &self.variant(NameVariant::Class, self.name.clone()));
-        context.insert("model", &self.variant(NameVariant::Model, self.name.clone()));
+        context.insert(
+            "variable",
+            &self.variant(NameVariant::Variable, self.name.clone()),
+        );
+        context.insert(
+            "variable_plural",
+            &self.variant(NameVariant::VariablePlural, self.name.clone()),
+        );
+        context.insert(
+            "class",
+            &self.variant(NameVariant::Class, self.name.clone()),
+        );
+        context.insert(
+            "model",
+            &self.variant(NameVariant::Model, self.name.clone()),
+        );
         if let Some(alias) = &self.alias {
-            context.insert("alias_or_name", &self.variant(NameVariant::Alias, alias.clone()));
+            context.insert(
+                "alias_or_name",
+                &self.variant(NameVariant::Alias, alias.clone()),
+            );
         } else {
-            context.insert("alias_or_name", &self.variant(NameVariant::Alias, self.name.clone()));
+            context.insert(
+                "alias_or_name",
+                &self.variant(NameVariant::Alias, self.name.clone()),
+            );
         }
 
         if let Some(belongs_to) = &self.belongs_to {
-            context.insert("belongs_to_model", &self.variant(NameVariant::BelongsToModel, belongs_to.clone()));
-            context.insert("belongs_to_id", &self.variant(NameVariant::BelongsToId, belongs_to.clone()));
-            context.insert("belongs_to_path", &self.variant(NameVariant::BelongsToPath, belongs_to.clone()));
+            context.insert(
+                "belongs_to_model",
+                &self.variant(NameVariant::BelongsToModel, belongs_to.clone()),
+            );
+            context.insert(
+                "belongs_to_id",
+                &self.variant(NameVariant::BelongsToId, belongs_to.clone()),
+            );
+            context.insert(
+                "belongs_to_path",
+                &self.variant(NameVariant::BelongsToPath, alias_lookup.get(belongs_to).unwrap().clone()),
+            );
         } else {
-            context.insert("belongs_to_model", &self.variant(NameVariant::BelongsToModel, self.name.clone()));
-            context.insert("belongs_to_path", &self.variant(NameVariant::BelongsToPath, self.name.clone()));
-            context.insert("belongs_to_id", &self.variant(NameVariant::BelongsToId, self.name.clone()));
+            context.insert(
+                "belongs_to_model",
+                &self.variant(NameVariant::BelongsToModel, self.name.clone()),
+            );
+            context.insert(
+                "belongs_to_path",
+                &self.variant(NameVariant::BelongsToPath, self.name.clone()),
+            );
+            context.insert(
+                "belongs_to_id",
+                &self.variant(NameVariant::BelongsToId, self.name.clone()),
+            );
         }
 
-        context
+        Ok(context)
     }
 
-    fn get_path_config_context(&self, name: String, alias: Option<String>, belongs_to: Option<String>) -> Context {
+    fn get_path_config_context(
+        &self,
+        name: String,
+        alias: Option<String>,
+        belongs_to: Option<String>,
+    ) -> Context {
         let mut context = Context::new();
         context.insert("name", &self.variant(NameVariant::Path, name));
 
@@ -127,11 +179,42 @@ impl Resource {
         context
     }
 
+    fn load_paths_config(&self) -> Result<HashMap<String, String>, String> {
+        let content = fs::read_to_string(Dir::Helpers(Some("paths_config.toml")).path()).unwrap_or_else(|e| e.to_string());
+
+        let parsed: Value = match content.parse::<Value>() {
+            Ok(v) => v,
+            Err(e) => return Err(e.to_string()),
+        };
+
+        let mut hash: HashMap<String, String> = HashMap::new();
+
+        if let Some(resources) = parsed.get("resources").and_then(|v| v.as_array()) {
+            for i in resources {
+                let name = match i.get("name").and_then(|v| v.as_str()) {
+                    Some(n) => n,
+                    None => Err("Resource does not have a name")?,
+                };
+                if let Some(alias) = i.get("as").and_then(|v| v.as_str()) {
+                    if alias.is_empty() {
+                        hash.insert(name.to_string(), name.to_string());
+                    } else {
+                        hash.insert(name.to_string(), alias.to_string());
+                    }
+                } else {
+                    hash.insert(name.to_string(), name.to_string());
+                }
+            }
+        }
+
+        Ok(hash)
+    }
+
     fn generate_path_config(&self) -> Result<(), String> {
         let path_config_context = &self.get_path_config_context(
             self.name.clone(),
             self.alias.clone(),
-            self.belongs_to.clone()
+            self.belongs_to.clone(),
         );
 
         let mut path_config = PathsConfig::new();
@@ -147,8 +230,8 @@ impl Resource {
         let has_belongs_to = self.belongs_to.is_some();
 
         let mut controller = Controller::new(filename.clone(), has_belongs_to);
-
-        match controller.write_template(&self.get_context()) {
+        let context = &self.get_context()?;
+        match controller.write_template(context) {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),
         }
@@ -168,21 +251,4 @@ impl Resource {
             NameVariant::VariablePlural => name.to_snake_case().to_plural(),
         }
     }
-
-    // pub fn name_variant(&self, variant: NameVariant) -> String {
-    //     match variant {
-    //         NameVariant::Model => self.name.to_pascal_case().to_singular(),
-    //         NameVariant::Class => self.name.to_pascal_case().to_plural(),
-    //         NameVariant::Variable => self.name.to_snake_case().to_singular(),
-    //         NameVariant::Path => self.name.to_snake_case().to_plural(),
-    //         NameVariant::Alias => {
-    //             if let Some(alias) = &self.alias {
-    //                 alias.to_snake_case().to_plural()
-    //             } else {
-    //                 self.name.to_snake_case().to_plural()
-    //             }
-    //         },
-    //         _ => "unimplemented".to_string(),
-    //     }
-    // }
 }
