@@ -40,13 +40,8 @@ impl Project {
         let template_dir = current_dir.join(self.name.clone());
 
         // copy all files/folders from project_template
-        if let Err(e) = self.copy_project_template(template_dir) {
-            return Err(e.to_string());
-        }
-
-        if let Err(e) = self.cd_app_dir() {
-            return Err(e.to_string());
-        }
+        self.copy_project_template(template_dir)?;
+        self.cd_app_dir()?;
 
         // create .env file with db
         // TODO: generate secret
@@ -56,53 +51,37 @@ impl Project {
         };
 
         // add bundle config to control bundler settings
-        if let Err(e) = self.create_bundle_config() {
-            return Err(e.to_string());
-        }
+        self.create_bundle_config()?;
 
         // add empty gemfile, except for required fields
-        if let Err(e) = self.create_gemfile() {
-            return Err(e.to_string());
-        }
+        self.create_gemfile()?;
 
         // base config.ru for template
-        if let Err(e) = self.create_config_ru() {
-            return Err(e.to_string());
-        }
+        self.create_config_ru()?;
 
         // add default gems and install
-        if let Err(e) = self.run_bundle(self.db.clone()) {
-            return Err(e.to_string());
-        }
+        self.run_bundle(self.db.clone())?;
 
         // bin/dev loses execute, add back
-        if let Err(e) = self.chmod_x(Dir::Bin(Some("dev")).path()) {
-            return Err(e.to_string());
-        }
+        self.chmod_x(Dir::Bin(Some("dev")).path())?;
 
         // run initial migrate, required for user model
-        if let Err(e) = self.run_migrate() {
-            return Err(e.to_string());
-        }
+        self.run_migrate()?;
 
         // download tailwind
         // mac version currently
-        if let Err(e) = self.download_tailwind() {
-            return Err(e.to_string());
-        }
+        self.download_tailwind()?;
 
         // run init, make executable
-        if let Err(e) = self.init_tailwind() {
-            return Err(e.to_string());
-        }
+        self.init_tailwind()?;
 
-        println!("{}", "Run app".blue());
+        println!("\n{}", "Run app".blue());
         println!("-------------");
         println!(
             "{}",
             format!("{}", format_args!("cd ./{}", &self.name)).blue()
         );
-        println!("{}", "bin/dev".blue());
+        println!("{}\n", "bin/dev".blue());
 
         Ok(())
     }
@@ -139,14 +118,8 @@ impl Project {
     }
 
     fn run_migrate(&self) -> Result<(), String> {
-        let msg: String = format!(
-            "{}",
-            format_args!(
-                "Running migrations for {}",
-                self.connection_string.clone().unwrap()
-            )
-        );
-        println!("{}", msg.green());
+        print!("{}", "Running migrations for ".green());
+        println!("{}", self.connection_string.clone().unwrap().green().bold());
 
         let cmd = Command::new("bundle")
             .arg("exec")
@@ -165,8 +138,8 @@ impl Project {
     }
 
     fn chmod_x(&self, path: String) -> Result<(), String> {
-        println!("{}", "Setting execute for ".green());
-        println!("{}", path.green());
+        print!("{}", "Setting execute for ".green());
+        println!("{}", path.green().bold());
 
         let output = Command::new("chmod")
             .arg("+x")
