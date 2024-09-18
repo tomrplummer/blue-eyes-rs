@@ -5,3 +5,4 @@ pub mod config_ru;
 pub mod tw;
 pub mod controller;
 pub mod paths_config;
+pub mod model;
