@@ -49,7 +49,6 @@ fn main() {
         Commands::Migrate => println!("Running all new migrations scripts"),
         Commands::Generate { entity } => handle_generate(entity),
         Commands::Test => {
-            () 
         }
     }
 }

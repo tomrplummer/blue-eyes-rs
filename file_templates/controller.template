@@ -1,6 +1,6 @@
 require 'haml'
 
-class {{ class }} < ApplicationController
+class {{ class }}Controller < ApplicationController
     # index
     get "/{{ alias_or_name }}" do
       @{{ variable_plural }} = {{ model }}.all

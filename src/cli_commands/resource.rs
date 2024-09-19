@@ -294,7 +294,27 @@ impl Resource {
             "controller.template"
         };
 
-        match write_template(output_path, template_path.to_string(), context) {
+        _ = match write_template(output_path, template_path.to_string(), context) {
+            Ok(c) => c,
+            Err(e) => return Err(e.to_string()),
+        };
+        let controller_name = self.variant(NameVariant::Class, self.name.clone()) + "Controller";
+        match self.update_config_ru(controller_name) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e.to_string()),
+        }
+    }
+
+    fn update_config_ru(&self, controller_name: String) -> Result<(), String> {
+        let contents = match fs::read_to_string(Dir::Root(Some("config.ru")).path()) {
+            Ok(contents) => contents,
+            Err(e) => return Err(e.to_string()),
+        };
+
+        let replacement = "use ".to_string() + &controller_name + "\nrun Sinatra::Application";
+
+        let result = contents.replace("run Sinatra::Application", &replacement);
+        match fs::write(Dir::Root(Some("config.ru")).path(), result) {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),
         }

@@ -1,6 +1,6 @@
 require 'haml'
 
-class {{ class }} < ApplicationController
+class {{ class }}Controller < ApplicationController
     # index
     get "/{{ belongs_to_path}}/:{{ belongs_to_id }}_id/{{ alias_or_name }}" do
       @{{ variable_plural }} = {{ model }}.where({{ belongs_to_id }}_id: params[:{{ belongs_to_id }}_id]).all
