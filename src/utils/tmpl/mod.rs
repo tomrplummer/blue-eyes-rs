@@ -6,3 +6,4 @@ pub mod tw;
 pub mod controller;
 pub mod paths_config;
 pub mod model;
+pub mod migration;

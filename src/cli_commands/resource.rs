@@ -7,11 +7,13 @@ use crate::writable_template::WritableTemplate;
 use inflector::Inflector;
 use tera::Context;
 use toml::Value;
+use serde::Serialize;
 use crate::dirs::Dir;
+use crate::utils::tmpl::migration::Migration;
 use crate::utils::tmpl::model::Model;
 
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 struct Field {
     name: String,
     sql_type: String,
@@ -81,7 +83,10 @@ impl Resource {
                 Ok(())
             }
             CommandType::Model => {
-                self.generate_model()?; 
+                println!("Generating model...");
+                self.generate_model()?;
+                println!("Generating migration...");
+                self.generate_migration()?;
                 Ok(())
             }
             // CommandType::Scaffold => println!("Scaffold"),
@@ -101,6 +106,36 @@ impl Resource {
         }
     }
 
+    fn generate_migration(&self) -> Result<(), String> {
+        let filename = self.variant(NameVariant::Path, self.name.clone());
+
+        let mut migration = Migration::new(filename);
+
+        let context = self.get_migration_context()?;
+        match migration.write_template(&context) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e.to_string()),
+        }
+    }
+
+    fn get_migration_context(&self) -> Result<Context, String> {
+        let mut context = Context::new();
+        let table_name = self.variant(NameVariant::Path, self.name.clone());
+
+        context.insert("table_name", &table_name);
+
+        if let Some(belongs_to) = &self.belongs_to {
+            let belongs_to_id = self.variant(NameVariant::BelongsToId, belongs_to.clone()) + "_id";
+            context.insert("belongs_to_id", &belongs_to_id);
+        }
+        if let Some(fields) = &self.fields {
+            context.insert("fields", fields);
+        } else {
+            return Err("No fields provided".to_string())
+        }
+
+        Ok(context)
+    }
     fn get_context(&self) -> Result<Context, String> {
         let alias_lookup = match self.load_paths_config() {
             Ok(alias_lookup) => alias_lookup,
@@ -148,7 +183,7 @@ impl Resource {
             );
             context.insert(
                 "belongs_to_path",
-                &self.variant(NameVariant::BelongsToPath, alias_lookup.get(belongs_to).unwrap().clone()),
+                &self.variant(NameVariant::BelongsToPath, alias_lookup.get(&self.variant(NameVariant::BelongsToPath, belongs_to.to_string())).unwrap().clone()),
             );
         } else {
             context.insert(
