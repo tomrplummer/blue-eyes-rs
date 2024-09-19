@@ -6,11 +6,10 @@ mod bundle;
 mod cli_commands;
 mod dirs;
 mod utils;
-mod writable_template;
+mod template_writer;
 
 use crate::cli_commands::cli::{Cli, CommandType, Commands};
 use crate::cli_commands::resource::Resource;
-use crate::utils::tmpl::gemfile::Gemfile;
 use cli_commands::cli::GenerateSubcommand;
 use cli_commands::project::Project;
 
@@ -50,11 +49,7 @@ fn main() {
         Commands::Migrate => println!("Running all new migrations scripts"),
         Commands::Generate { entity } => handle_generate(entity),
         Commands::Test => {
-            let gem_file = Gemfile::new();
-            match gem_file.get_ruby_version() {
-                Ok(ruby_version) => println!("{}", ruby_version),
-                Err(e) => println!("{}", e),
-            }
+            () 
         }
     }
 }

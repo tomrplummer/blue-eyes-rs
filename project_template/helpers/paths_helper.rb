@@ -12,14 +12,14 @@ module PathsHelper
 
     unless config["resources"].nil?
       config["resources"].each do |resource|
-        as_lookup[resource["name"]] = resource["as"] || resource["name"]
+        as_lookup[resource["name"]] = resource["as"] && resource["as"].length > 0 ? resource["as"] : resource["name"]
       end
       puts "lookup #{as_lookup}"
       config["resources"].each do |resource|
         #if resource["as"].nil?
         #resources resource["name"].to_sym
           #else
-        resources resource["name"].to_sym, :as => (resource["as"] ? resource["as"].to_sym : nil), :belongs_to => (resource["belongs_to"] ? as_lookup[resource["belongs_to"]] : nil)
+        resources resource["name"].to_sym, :as => (resource["as"] && resource["as"].size > 0 ? resource["as"].to_sym : nil), :belongs_to => (resource["belongs_to"] && resource["belongs_to"].size > 0 ? as_lookup[resource["belongs_to"]] : nil)
           #end
       end
     end

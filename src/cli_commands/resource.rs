@@ -1,16 +1,13 @@
+use crate::cli_commands::cli::{CommandType, SharedArgs};
+use crate::dirs::Dir;
+use inflector::Inflector;
+use serde::Serialize;
 use std::collections::HashMap;
 use std::fs;
-use crate::cli_commands::cli::{CommandType, SharedArgs};
-use crate::utils::tmpl::controller::Controller;
-use crate::utils::tmpl::paths_config::PathsConfig;
-use crate::writable_template::WritableTemplate;
-use inflector::Inflector;
+use chrono::Utc;
 use tera::Context;
 use toml::Value;
-use serde::Serialize;
-use crate::dirs::Dir;
-use crate::utils::tmpl::migration::Migration;
-use crate::utils::tmpl::model::Model;
+use crate::template_writer::write_template;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Serialize)]
@@ -95,24 +92,25 @@ impl Resource {
     }
 
     fn generate_model(&self) -> Result<(), String> {
-        let filename = self.variant(NameVariant::Path, self.name.clone());
+        let filename = self.variant(NameVariant::Path, self.name.clone()) + ".rb";
         let context = self.get_context()?;
+        let output_path = Dir::Models(Some(&filename)).path();
 
-        let mut model = Model::new(filename);
-
-        match model.write_template(&context) {
+        match write_template(output_path, "model.template".to_string(), &context) {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),
         }
     }
 
     fn generate_migration(&self) -> Result<(), String> {
-        let filename = self.variant(NameVariant::Path, self.name.clone());
-
-        let mut migration = Migration::new(filename);
+        let timestamp = Utc::now().timestamp();
+        let filename = timestamp.to_string() + "_create_" + &self.variant(NameVariant::Path, self.name.clone()) + ".rb";
+        let output_path = Dir::Migrations(Some(filename.as_str())).path();
 
         let context = self.get_migration_context()?;
-        match migration.write_template(&context) {
+
+
+        match write_template(output_path, "new_table.template".to_string(), &context) {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),
         }
@@ -131,7 +129,7 @@ impl Resource {
         if let Some(fields) = &self.fields {
             context.insert("fields", fields);
         } else {
-            return Err("No fields provided".to_string())
+            return Err("No fields provided".to_string());
         }
 
         Ok(context)
@@ -183,7 +181,13 @@ impl Resource {
             );
             context.insert(
                 "belongs_to_path",
-                &self.variant(NameVariant::BelongsToPath, alias_lookup.get(&self.variant(NameVariant::BelongsToPath, belongs_to.to_string())).unwrap().clone()),
+                &self.variant(
+                    NameVariant::BelongsToPath,
+                    alias_lookup
+                        .get(&self.variant(NameVariant::BelongsToPath, belongs_to.to_string()))
+                        .unwrap()
+                        .clone(),
+                ),
             );
         } else {
             context.insert(
@@ -231,7 +235,8 @@ impl Resource {
     }
 
     fn load_paths_config(&self) -> Result<HashMap<String, String>, String> {
-        let content = fs::read_to_string(Dir::Helpers(Some("paths_config.toml")).path()).unwrap_or_else(|e| e.to_string());
+        let content = fs::read_to_string(Dir::Helpers(Some("paths_config.toml")).path())
+            .unwrap_or_else(|e| e.to_string());
 
         let parsed: Value = match content.parse::<Value>() {
             Ok(v) => v,
@@ -262,27 +267,34 @@ impl Resource {
     }
 
     fn generate_path_config(&self) -> Result<(), String> {
-        let path_config_context = &self.get_path_config_context(
+        let context = self.get_path_config_context(
             self.name.clone(),
             self.alias.clone(),
             self.belongs_to.clone(),
         );
 
-        let mut path_config = PathsConfig::new();
+        let output_path = Dir::Helpers(Some("paths_config.toml")).path();
+        let template_path = "paths_config.template".to_string();
 
-        match path_config.write_template(path_config_context) {
+        match write_template(output_path, template_path, &context) {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),
         }
     }
 
     fn generate_controller(&self) -> Result<(), String> {
-        let filename = self.variant(NameVariant::Path, self.name.clone());
+        let filename = self.variant(NameVariant::Path, self.name.clone()) + ".rb";
         let has_belongs_to = self.belongs_to.is_some();
+        let output_path = Dir::Controllers(Some(&filename)).path();
 
-        let mut controller = Controller::new(filename.clone(), has_belongs_to);
         let context = &self.get_context()?;
-        match controller.write_template(context) {
+        let template_path = if has_belongs_to {
+            "controller_belongs_to.template"
+        } else {
+            "controller.template"
+        };
+
+        match write_template(output_path, template_path.to_string(), context) {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),
         }

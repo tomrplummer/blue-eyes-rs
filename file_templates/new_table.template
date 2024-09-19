@@ -5,9 +5,12 @@ Sequel.migration do
       {% for field in fields -%}
       {{ field.sql_type }} :{{ field.name }}
       {% endfor -%}
-      {% if belongs_to_id -%}
+      {% if belongs_to_id %}
       Integer :{{ belongs_to_id }}
-      {% endif -%}
+      {% endif %}
+
+      DateTime :created_at, default: Sequel::CURRENT_TIMESTAMP
+      DateTime :updated_at, default: Sequel::CURRENT_TIMESTAMP
     end
   end
 end

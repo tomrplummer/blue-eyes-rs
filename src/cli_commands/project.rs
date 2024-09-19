@@ -1,12 +1,6 @@
 use crate::bundle::Bundler;
 use crate::dirs::Dir;
 use crate::utils::fget::download_file;
-use crate::utils::tmpl::bundle_config::BundleConfig;
-use crate::utils::tmpl::config_ru::ConfigRu;
-use crate::utils::tmpl::envfile::EnvFile;
-use crate::utils::tmpl::gemfile::Gemfile;
-use crate::utils::tmpl::tw::Tailwind;
-use crate::writable_template::WritableTemplate;
 use colored::Colorize;
 use rust_embed::RustEmbed;
 use std::env::{self, current_dir};
@@ -14,7 +8,12 @@ use std::fs::{create_dir_all, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use rand::RngCore;
+use rand::rngs::OsRng;
 use tera::Context;
+use crate::template_writer::write_template;
+use base64::engine::Engine as _;
+use base64::engine::general_purpose::STANDARD as BASE64;
 
 #[derive(RustEmbed)]
 #[folder = "project_template"]
@@ -110,8 +109,10 @@ impl Project {
             return Err("Failed to init tailwind.".to_string());
         }
 
-        let mut tailwind = Tailwind::new();
-        match tailwind.write_template(&Context::new()) {
+        let output_path = Dir::Root(Some("tailwind.config.js")).path();
+        let template_path = "tailwind_config.template".to_string();
+
+        match write_template(output_path, template_path, &Context::new()) {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),
         }
@@ -166,8 +167,10 @@ impl Project {
     fn create_config_ru(&self) -> Result<(), String> {
         println!("{}", "Creating config.ru".green());
 
-        let mut config_ru = ConfigRu::new();
-        match config_ru.write_template(&Context::new()) {
+        let output_path = Dir::Root(Some("config.ru")).path();
+        let template_path = "config_ru.template".to_string();
+
+        match write_template(output_path, template_path, &Context::new()) {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),
         }
@@ -186,17 +189,35 @@ impl Project {
         Ok(())
     }
 
+    fn generate_secret(&self) -> String {
+        let mut key = [0u8; 32];  // 32 bytes = 256 bits
+        OsRng.fill_bytes(&mut key);  // Fill with cryptographically secure random bytes
+
+        // Encode the secret key as base64
+        BASE64.encode(key)
+    }
+
     fn create_env_file(&self) -> Result<String, String> {
         println!("{}", "Creating .env file".green());
 
-        let mut env = EnvFile::new(self.name.clone(), self.db.clone());
+        let output_path = Dir::Root(Some(".env")).path();
+        let template_path = "env_file.template".to_string();
+
+        let pg_connection_string = "postgres://".to_string() + self.name.as_str();
+        let sqlite_connection_string = "sqlite://".to_string() + self.name.as_str() + ".db";
+        let connection_string = match self.db {
+            _ if self.db.to_string().trim() == "postgres" => pg_connection_string,
+            _ => sqlite_connection_string,
+        };
+
+        let secret = self.generate_secret();
 
         let mut context = Context::new();
-        context.insert("connection_string", &env.connection_string);
-        context.insert("secret", &env.secret);
+        context.insert("connection_string", connection_string.as_str());
+        context.insert("secret", secret.as_str());
 
-        match env.write_template(&context) {
-            Ok(_) => Ok(env.connection_string),
+        match write_template(output_path, template_path, &context) {
+            Ok(_) => Ok(connection_string),
             Err(e) => Err(e.to_string()),
         }
     }
@@ -204,21 +225,52 @@ impl Project {
     fn create_bundle_config(&self) -> Result<(), String> {
         println!("{}", "Creating bundle config".green());
 
-        let mut bundle_config = BundleConfig::new();
+        let output_path = Dir::BundleConfig(Some("config")).path();
+        let template_path = "bundle_config.template".to_string();
 
-        match bundle_config.write_template(&Context::new()) {
+        match write_template(output_path, template_path, &Context::new()) {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),
+        }
+    }
+
+    fn get_gemfile_context(&self) -> Context {
+        let ruby_version = match self.get_ruby_version() {
+            Ok(ruby_version) => ruby_version,
+            Err(error) => panic!("{}", error),
+        };
+
+        let mut context = Context::new();
+        context.insert("ruby_version", ruby_version.as_str());
+
+        context
+    }
+    pub fn get_ruby_version(&self) -> Result<String, String> {
+        let output = Command::new("ruby")
+            .arg("--version")
+            .output()
+            .map_err(|err| err.to_string())?;
+
+        let full_version = match String::from_utf8(output.stdout) {
+            Ok(v) => v,
+            Err(err) => return Err(err.to_string()),
+        };
+
+        let parts = full_version.split_whitespace().collect::<Vec<&str>>();
+        if parts.len() < 2 {
+            Err("Unable to get ruby version".to_string())
+        } else {
+            Ok(parts[1].trim().to_string())
         }
     }
 
     fn create_gemfile(&self) -> Result<(), String> {
         println!("{}", "Creating Gemfile".green());
 
-        let mut gemfile = Gemfile::new();
-        let context = gemfile.get_context();
-
-        match gemfile.write_template(&context) {
+        let output_path = Dir::Root(Some("Gemfile")).path();
+        let template_path = "gemfile.template".to_string();
+        let context = self.get_gemfile_context();
+        match write_template(output_path, template_path, &context) {
             Ok(_) => Ok(()),
             Err(e) => Err(e.to_string()),
         }
