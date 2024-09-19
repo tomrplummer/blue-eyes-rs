@@ -22,7 +22,7 @@ fn handle_generate(entity: &GenerateSubcommand) {
     };
 
     match resource.generate_template() {
-        Ok(()) => println!("no error"),
+        Ok(()) => println!("{}", "Done".green().bold()),
         Err(e) => println!("{}", e),
     }
 }

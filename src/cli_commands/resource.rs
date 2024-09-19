@@ -80,13 +80,17 @@ impl Resource {
                 Ok(())
             }
             CommandType::Model => {
-                println!("Generating model...");
                 self.generate_model()?;
-                println!("Generating migration...");
                 self.generate_migration()?;
                 Ok(())
             }
-            // CommandType::Scaffold => println!("Scaffold"),
+            CommandType::Scaffold => {
+                self.generate_controller()?;
+                _ = self.generate_path_config();
+                self.generate_model()?;
+                self.generate_migration()?;
+                Ok(())
+            },
             _ => Err("Not implemented".to_string()),
         }
     }
