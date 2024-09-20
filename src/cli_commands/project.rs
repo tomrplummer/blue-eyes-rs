@@ -14,6 +14,7 @@ use tera::Context;
 use crate::template_writer::write_template;
 use base64::engine::Engine as _;
 use base64::engine::general_purpose::STANDARD as BASE64;
+use crate::migrate;
 
 #[derive(RustEmbed)]
 #[folder = "project_template"]
@@ -122,19 +123,19 @@ impl Project {
         print!("{}", "Running migrations for ".green());
         println!("{}", self.connection_string.clone().unwrap().green().bold());
 
-        let cmd = Command::new("bundle")
-            .arg("exec")
-            .arg("sequel")
-            .arg("-m")
-            .arg(Dir::Migrations(None).path())
-            .arg(self.connection_string.clone().unwrap())
-            .output()
-            .map_err(|e| e.to_string())?;
-
-        if !cmd.status.success() {
-            return Err(String::from_utf8(cmd.stderr).unwrap());
-        }
-
+        // let cmd = Command::new("bundle")
+        //     .arg("exec")
+        //     .arg("sequel")
+        //     .arg("-m")
+        //     .arg(Dir::Migrations(None).path())
+        //     .arg(self.connection_string.clone().unwrap())
+        //     .output()
+        //     .map_err(|e| e.to_string())?;
+        // 
+        // if !cmd.status.success() {
+        //     return Err(String::from_utf8(cmd.stderr).unwrap());
+        // }
+        migrate::run()?;
         Ok(())
     }
 

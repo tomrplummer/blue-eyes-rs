@@ -35,6 +35,10 @@ pub enum Commands {
         #[command(subcommand)]
         entity: GenerateSubcommand,
     },
+    G {
+        #[command(subcommand)]
+        entity: GenerateSubcommand,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -43,6 +47,18 @@ pub enum GenerateSubcommand {
     Model(SharedArgs),
     Api(SharedArgs),
     Scaffold(SharedArgs),
+    Migration(MigrationArgs),
+}
+
+#[derive(Args, Debug)]
+pub struct MigrationArgs { 
+    #[arg(long)]
+    pub alter: String,
+    
+    #[arg(long)]
+    pub add_column: Option<String>,
+    #[arg(long)]
+    pub drop_column: Option<String>,
 }
 
 #[derive(Args, Debug)]

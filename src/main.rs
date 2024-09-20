@@ -7,6 +7,7 @@ mod cli_commands;
 mod dirs;
 mod utils;
 mod template_writer;
+mod migrate;
 
 use crate::cli_commands::cli::{Cli, CommandType, Commands};
 use crate::cli_commands::resource::Resource;
@@ -19,6 +20,7 @@ fn handle_generate(entity: &GenerateSubcommand) {
         GenerateSubcommand::Controller(args) => Resource::new(args, CommandType::Controller),
         GenerateSubcommand::Model(args) => Resource::new(args, CommandType::Model),
         GenerateSubcommand::Scaffold(args) => Resource::new(args, CommandType::Scaffold),
+        GenerateSubcommand::Migration(_) => todo!()
     };
 
     match resource.generate_template() {
@@ -46,8 +48,9 @@ fn main() {
         Commands::New { project_name, db } => {
             _ = handle_new(String::from(project_name), String::from(db))
         }
-        Commands::Migrate => println!("Running all new migrations scripts"),
+        Commands::Migrate => migrate::run().unwrap(),
         Commands::Generate { entity } => handle_generate(entity),
+        Commands::G { entity } => handle_generate(entity),
         Commands::Test => {
         }
     }
