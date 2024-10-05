@@ -14,18 +14,19 @@ use crate::cli_commands::resource::Resource;
 use cli_commands::cli::GenerateSubcommand;
 use cli_commands::project::Project;
 
-fn handle_generate(entity: &GenerateSubcommand) {
+fn handle_generate(entity: &GenerateSubcommand) -> Result<(), String> {
     let resource = match entity {
         GenerateSubcommand::Api(args) => Resource::new(args, CommandType::Api),
         GenerateSubcommand::Controller(args) => Resource::new(args, CommandType::Controller),
         GenerateSubcommand::Model(args) => Resource::new(args, CommandType::Model),
         GenerateSubcommand::Scaffold(args) => Resource::new(args, CommandType::Scaffold),
-        GenerateSubcommand::Migration(_) => todo!()
+        //GenerateSubcommand::Migration{entity} => Res 
+        _ => return Err("Not implemented".to_string())
     };
 
     match resource.generate_template() {
-        Ok(()) => println!("{}", "Done".green().bold()),
-        Err(e) => println!("{}", e),
+        Ok(_) => Ok(()),
+        Err(e) => Err(e), 
     }
 }
 
@@ -44,14 +45,17 @@ fn main() {
 
     let cli = Cli::parse();
 
-    match &cli.command {
+    let result = match &cli.command {
         Commands::New { project_name, db } => {
-            _ = handle_new(String::from(project_name), String::from(db))
+            handle_new(String::from(project_name), String::from(db))
         }
-        Commands::Migrate => migrate::run().unwrap(),
+        Commands::Migrate => migrate::run(),
         Commands::Generate { entity } => handle_generate(entity),
         Commands::G { entity } => handle_generate(entity),
-        Commands::Test => {
-        }
+    };
+
+    match result {
+        Ok(()) => println!("{}", "Complete".green().bold()),
+        Err(e) => println!("Error: {}", e.red().bold())
     }
 }

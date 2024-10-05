@@ -44,7 +44,6 @@ impl Project {
         self.cd_app_dir()?;
 
         // create .env file with db
-        // TODO: generate secret
         self.connection_string = match self.create_env_file() {
             Ok(connection_string) => Some(connection_string),
             Err(e) => return Err(e.to_string()),
@@ -123,18 +122,6 @@ impl Project {
         print!("{}", "Running migrations for ".green());
         println!("{}", self.connection_string.clone().unwrap().green().bold());
 
-        // let cmd = Command::new("bundle")
-        //     .arg("exec")
-        //     .arg("sequel")
-        //     .arg("-m")
-        //     .arg(Dir::Migrations(None).path())
-        //     .arg(self.connection_string.clone().unwrap())
-        //     .output()
-        //     .map_err(|e| e.to_string())?;
-        // 
-        // if !cmd.status.success() {
-        //     return Err(String::from_utf8(cmd.stderr).unwrap());
-        // }
         migrate::run()?;
         Ok(())
     }

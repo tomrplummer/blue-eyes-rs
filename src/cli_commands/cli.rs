@@ -14,7 +14,7 @@ pub enum CommandType {
 #[derive(Parser, Debug)]
 #[command(
     name = "blue-eyes",
-    about = "A cli_commands to generate projects and files for Ruby, Sinatra and Haml/Tailwind"
+    about = "A cli_commands to generate projects and files for Ruby, Sinatra, Sequel and Haml/Tailwind"
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -29,7 +29,6 @@ pub enum Commands {
         #[arg(long, default_value = "sqlite")]
         db: String,
     },
-    Test,
     Migrate,
     Generate {
         #[command(subcommand)]
@@ -47,18 +46,38 @@ pub enum GenerateSubcommand {
     Model(SharedArgs),
     Api(SharedArgs),
     Scaffold(SharedArgs),
-    Migration(MigrationArgs),
+    //Migration(MigrationArgs),
+    Migration {
+        #[command(subcommand)]
+        entity: MigrationSubcommand,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum MigrationSubcommand {
+    Alter {
+        table_name: String,
+
+        #[arg(long)]
+        add: Option<String>,
+
+        #[arg(long)]
+        drop: Option<String>,
+    },
+
+    Drop {
+        table_name: String
+    }
 }
 
 #[derive(Args, Debug)]
-pub struct MigrationArgs { 
+pub struct AlterArgs { 
+    table_name: String,
     #[arg(long)]
-    pub alter: String,
-    
+    add: Option<String>,
+
     #[arg(long)]
-    pub add_column: Option<String>,
-    #[arg(long)]
-    pub drop_column: Option<String>,
+    drop: Option<String>,
 }
 
 #[derive(Args, Debug)]
